@@ -43,6 +43,9 @@ import (
 
 const driverName = "s3aws"
 
+const readRetryThreshold = 5
+const readRetryInterval = 1
+
 // minChunkSize defines the minimum multipart upload chunk size
 // S3 API requires multipart upload chunks to be at least 5MB
 const minChunkSize = 5 << 20
@@ -710,10 +713,34 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 	//
 	// Empirically, multipart copy is fastest with 32 MB parts and is faster
 	// than PUT Object - Copy for objects larger than 32 MB.
+	var fileInfo storagedriver.FileInfo
+	var parsedError error
 
-	fileInfo, err := d.Stat(ctx, sourcePath)
-	if err != nil {
-		return parseError(sourcePath, err)
+	for i := 1; i <= readRetryThreshold; i++ {
+		parsedError = nil
+		info, err := d.Stat(ctx, sourcePath)
+
+		if err != nil {
+			parsedError = parseError(sourcePath, err)
+			_, isPathNotFoundError := parsedError.(storagedriver.PathNotFoundError)
+			if isPathNotFoundError {
+				dcontext.GetLogger(ctx).Debugf(
+					"DEBUG JMO: path not found error, could be linked to an inconsistency issue, wait for %d sec (retry %d on %d)",
+					readRetryInterval,
+					i,
+					readRetryThreshold)
+				time.Sleep(readRetryInterval * time.Second)
+				continue
+			} else {
+				return parsedError
+			}
+		} else {
+			fileInfo = info
+		}
+	}
+
+	if parsedError != nil {
+		return parsedError
 	}
 
 	if fileInfo.Size() <= d.MultipartCopyThresholdSize {
