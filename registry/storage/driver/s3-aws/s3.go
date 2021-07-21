@@ -738,6 +738,7 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 			}
 		} else {
 			fileInfo = info
+			break
 		}
 	}
 
