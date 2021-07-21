@@ -302,6 +302,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 	}
 
 	// Check for existence
+	dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (*blobWriter).moveBlob 305 | getting stats for path %s", blobPath)
 	if _, err := bw.blobStore.driver.Stat(ctx, blobPath); err != nil {
 		switch err := err.(type) {
 		case storagedriver.PathNotFoundError:
@@ -321,6 +322,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 	// the size here and write a zero-length file to blobPath if this is the
 	// case. For the most part, this should only ever happen with zero-length
 	// blobs.
+	dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (*blobWriter).moveBlob 325 | getting stats for path %s", bw.path)
 	if _, err := bw.blobStore.driver.Stat(ctx, bw.path); err != nil {
 		switch err := err.(type) {
 		case storagedriver.PathNotFoundError:
@@ -330,6 +332,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 			// prevent this horrid thing, we employ the hack of only allowing
 			// to this happen for the digest of an empty blob.
 			if desc.Digest == digestSha256Empty {
+				dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (*blobWriter).moveBlob 335 | put content in path %s", blobPath)
 				return bw.blobStore.driver.PutContent(ctx, blobPath, []byte{})
 			}
 
@@ -344,6 +347,7 @@ func (bw *blobWriter) moveBlob(ctx context.Context, desc distribution.Descriptor
 
 	// TODO(stevvooe): We should also write the mediatype when executing this move.
 
+	dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (*blobWriter).moveBlob 350 | start moving path %s", blobPath)
 	return bw.blobStore.driver.Move(ctx, bw.path, blobPath)
 }
 

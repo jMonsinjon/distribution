@@ -700,6 +700,7 @@ func (d *driver) List(ctx context.Context, opath string) ([]string, error) {
 // object.
 func (d *driver) Move(ctx context.Context, sourcePath string, destPath string) error {
 	/* This is terrible, but aws doesn't have an actual move. */
+	dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (s3.go).Move 703 | start moving from path %s to %s", sourcePath, destPath)
 	if err := d.copy(ctx, sourcePath, destPath); err != nil {
 		return err
 	}
@@ -718,6 +719,7 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 
 	for i := 1; i <= readRetryThreshold; i++ {
 		parsedError = nil
+		dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (s3.go).copy 722 | getting stats from path %s before copy", sourcePath)
 		info, err := d.Stat(ctx, sourcePath)
 
 		if err != nil {
@@ -742,6 +744,8 @@ func (d *driver) copy(ctx context.Context, sourcePath string, destPath string) e
 	if parsedError != nil {
 		return parsedError
 	}
+
+	dcontext.GetLogger(ctx).Debugf("DEBUG JMO | (s3.go).copy 748 | stats from path %s were finally getted, seems great, good to continue", sourcePath)
 
 	if fileInfo.Size() <= d.MultipartCopyThresholdSize {
 		_, err := d.S3.CopyObject(&s3.CopyObjectInput{
